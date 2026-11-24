@@ -21,7 +21,7 @@ const SB = (() => {
     try {
       const j = await r.json();
       msg = j.message || j.msg || j.error_description || j.error || msg;
-      code = j.code || j.error_code || "";
+      code = j.error_code || j.code || "";   // Auth는 error_code(문자), DB는 code
     } catch { /* 본문 없음 */ }
     const e = new Error(msg); e.status = r.status; e.code = String(code); return e;
   }
