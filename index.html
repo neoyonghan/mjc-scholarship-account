@@ -74,6 +74,12 @@
         <input type="email" name="stuEmail" maxlength="100">
         <div class="err-msg">이메일 형식을 확인하세요.</div>
       </div>
+      <div class="f" id="teamBox">
+        <label>팀명<span class="req" id="teamReq">*</span></label>
+        <select name="teamId"><option value="">선택</option></select>
+        <div class="hint" id="teamHint"></div>
+        <div class="err-msg">팀을 선택하세요.</div>
+      </div>
 
     </div>
   </div>
@@ -118,7 +124,7 @@
     <div class="agree">
       <table>
         <tr><th>수집 목적</th><td>장학금·수당 지급 및 지급 내역 관리</td></tr>
-        <tr><th>수집 항목</th><td>학번, 성명, 학과, 학년, 연락처, 이메일(선택), 은행명, 계좌번호, 예금주, 통장 사본(선택)</td></tr>
+        <tr><th>수집 항목</th><td>학번, 성명, 팀명(선택), 학과, 학년, 연락처, 이메일(선택), 은행명, 계좌번호, 예금주, 통장 사본(선택)</td></tr>
         <tr><th>보유 기간</th><td id="retention"></td></tr>
         <tr><th>처리 위탁</th><td>Supabase Inc. (데이터 저장·관리 시스템 운영)</td></tr>
       </table>
