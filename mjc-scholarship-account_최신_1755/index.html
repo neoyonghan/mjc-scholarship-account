@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta name="referrer" content="no-referrer">
+<title>계좌 등록</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="apply">
+<header>
+  <h1 data-title>계좌 등록</h1>
+  <p>장학금·수당을 받을 학생의 인적사항과 입금 계좌를 등록합니다.</p>
+</header>
+
+<main>
+<section id="formWrap">
+<form id="regForm" novalidate autocomplete="off">
+
+  <!-- 자동 입력 프로그램 차단용(사람에게는 보이지 않음) -->
+  <div class="hp" aria-hidden="true"><label>웹사이트<input type="text" name="website" tabindex="-1" autocomplete="off"></label></div>
+
+  <div class="card">
+    <h2><span class="no">1</span>지급 정보</h2>
+    <div class="grid">
+      <div class="f">
+        <label>지급 구분<span class="req">*</span></label>
+        <select name="payType"><option value="">선택</option></select>
+        <div class="err-msg">지급 구분을 선택하세요.</div>
+      </div>
+      <div class="f">
+        <label>관련 사업·대회명<span class="req" id="progReq">*</span></label>
+        <select name="program" disabled><option value="">지급 구분을 먼저 선택하세요</option></select>
+        <div class="hint" id="progHint"></div>
+        <div class="err-msg">사업·대회를 선택하세요.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="no">2</span>인적사항</h2>
+    <div class="grid">
+      <div class="f">
+        <label>학번<span class="req">*</span></label>
+        <input type="text" name="stuId" inputmode="numeric" maxlength="12" placeholder="예) 20261234">
+        <div class="err-msg">학번은 숫자 6~12자리로 입력하세요.</div>
+      </div>
+      <div class="f">
+        <label>성명<span class="req">*</span></label>
+        <input type="text" name="stuName" maxlength="30">
+        <div class="err-msg">성명을 입력하세요.</div>
+      </div>
+      <div class="f">
+        <label>학과(전공)<span class="req">*</span></label>
+        <select name="dept"><option value="">선택</option></select>
+        <input type="text" name="deptEtc" maxlength="40" placeholder="학과명을 직접 입력하세요" class="hidden" style="margin-top:8px">
+        <div class="err-msg">학과를 선택하세요.</div>
+      </div>
+      <div class="f">
+        <label>학년</label>
+        <select name="grade">
+          <option value="">선택</option>
+          <option>1</option><option>2</option><option>3</option><option>4</option>
+        </select>
+      </div>
+      <div class="f">
+        <label>연락처<span class="req">*</span></label>
+        <input type="tel" name="stuPhone" placeholder="010-0000-0000">
+        <div class="err-msg">휴대전화 번호 형식을 확인하세요.</div>
+      </div>
+      <div class="f">
+        <label>이메일</label>
+        <input type="email" name="stuEmail" maxlength="100">
+        <div class="err-msg">이메일 형식을 확인하세요.</div>
+      </div>
+      <div class="f" id="teamBox">
+        <label>팀명<span class="req" id="teamReq">*</span></label>
+        <select name="teamId"><option value="">선택</option></select>
+        <div class="hint" id="teamHint"></div>
+        <div class="err-msg">팀을 선택하세요.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="no">3</span>통장사항</h2>
+    <div class="grid">
+      <div class="f">
+        <label>은행명<span class="req">*</span></label>
+        <select name="bank"><option value="">선택</option></select>
+        <div class="err-msg">은행을 선택하세요.</div>
+      </div>
+      <div class="f">
+        <label>계좌번호<span class="req">*</span></label>
+        <input type="text" name="account" inputmode="numeric" maxlength="24" placeholder="숫자만 또는 '-' 포함">
+        <div class="err-msg">계좌번호는 숫자 10~16자리입니다.</div>
+      </div>
+      <div class="f">
+        <label>예금주<span class="req">*</span></label>
+        <input type="text" name="holder" maxlength="30">
+        <div class="hint">본인 명의 계좌만 등록 가능합니다.</div>
+        <div class="err-msg">예금주는 본인 성명과 같아야 합니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="no">4</span>통장 사본 (선택)</h2>
+    <div class="notice info">통장 사본은 선택 제출입니다. 제출하면 계좌 확인이 빨라집니다.</div>
+    <div class="grid">
+      <div class="f">
+        <label>통장 사본</label>
+        <div class="drop" data-for="bankDoc"></div>
+        <input type="file" name="bankDoc" accept="image/jpeg,image/png,application/pdf" hidden>
+        <div class="hint">은행명·계좌번호·예금주가 보이는 면</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2><span class="no">5</span>개인정보 수집·이용 동의</h2>
+    <div class="agree">
+      <table>
+        <tr><th>수집 목적</th><td>장학금·수당 지급 및 지급 내역 관리</td></tr>
+        <tr><th>수집 항목</th><td>학번, 성명, 팀명(선택), 학과, 학년, 연락처, 이메일(선택), 은행명, 계좌번호, 예금주, 통장 사본(선택)</td></tr>
+        <tr><th>보유 기간</th><td id="retention"></td></tr>
+        <tr><th>처리 위탁</th><td>Supabase Inc. (데이터 저장·관리 시스템 운영)</td></tr>
+      </table>
+      동의를 거부할 수 있으나, 거부 시 지급이 불가합니다.
+    </div>
+    <div class="f"><label class="chk"><input type="checkbox" name="agree1"> 개인정보 수집·이용에 동의합니다. (필수)</label>
+      <div class="err-msg">필수 동의 항목입니다.</div></div>
+  </div>
+
+  <div class="actions">
+    <button type="reset" class="btn ghost">초기화</button>
+    <button type="submit" class="btn pri" id="submitBtn">등록 신청</button>
+  </div>
+</form>
+</section>
+
+<section id="doneWrap" class="hidden">
+  <div class="card done">
+    <div class="big">✅</div>
+    <h2>신청이 접수되었습니다</h2>
+    <p class="hint">담당자가 확인 후 지급합니다. 접수번호를 보관해 주세요.</p>
+    <div class="rcpt" id="rcpt"></div>
+    <p class="hint">계좌를 바꾸려면 다시 신청하면 됩니다. (최근 신청 기준으로 지급, 변경 시 담당자가 확인)</p>
+    <button class="btn ghost" id="againBtn">새로 신청하기</button>
+  </div>
+</section>
+</main>
+<footer><span id="contact"></span></footer>
+
+<script src="assets/config.js"></script>
+<script src="assets/common.js"></script>
+<script src="assets/sb.js"></script>
+<script src="assets/apply.js"></script>
+</body>
+</html>
