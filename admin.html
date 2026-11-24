@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex, nofollow">
+<title>관리자</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="admin">
+<header>
+  <h1 data-title>계좌 등록</h1>
+  <p>관리자 전용 · 신청내역 조회 및 다운로드</p>
+</header>
+
+<main>
+  <!-- 로그인 -->
+  <div class="card lock" id="loginBox">
+    <h2 style="justify-content:center">관리자 로그인</h2>
+    <form id="loginForm">
+      <input type="email" id="lgEmail" placeholder="관리자 이메일" autocomplete="username" style="margin-bottom:8px">
+      <input type="password" id="lgPw" placeholder="비밀번호" autocomplete="current-password" style="margin-bottom:10px">
+      <button class="btn pri" id="lgBtn" style="width:100%">로그인</button>
+    </form>
+    <div class="hint" id="lgMsg" style="margin-top:8px;color:var(--err)"></div>
+  </div>
+
+  <div id="adminBox" class="hidden">
+    <div class="adminbar">
+      <span>👤 <b id="whoami"></b> 로그인 중 <small class="hint" id="idleHint"></small></span>
+      <span><button class="btn ghost sm" id="reloadBtn">↻ 새로고침</button> <button class="btn ghost sm" id="pwBtn">비밀번호 변경</button> <button class="btn ghost sm" id="logoutBtn">로그아웃</button></span>
+    </div>
+    <div class="subtabs">
+      <button type="button" data-sub="apps" class="on">신청내역</button>
+      <button type="button" data-sub="progs">사업·대회 관리 <span class="cnt" id="progCnt"></span></button>
+    </div>
+    <div id="sub-progs" class="hidden">
+      <div class="card">
+        <h2>사업·대회 등록</h2>
+        <form id="progForm" class="grid" autocomplete="off">
+          <div class="f full"><label>사업·대회명<span class="req">*</span></label>
+            <input type="text" id="pgName" maxlength="60" placeholder="예) 2026 창업아이디어 경진대회"></div>
+          <div class="f"><label>지급 구분<span class="req">*</span></label><select id="pgType"></select></div>
+          <div class="f"><label>신청기간 <small class="hint">(비우면 상시)</small></label>
+            <div class="daterow"><input type="date" id="pgStart"><span>~</span><input type="date" id="pgEnd"></div></div>
+          <div class="f full actions" style="justify-content:flex-start"><button class="btn pri" id="pgSave" type="submit">등록</button>
+            <button class="btn ghost hidden" id="pgCancel" type="button">수정 취소</button></div>
+        </form>
+      </div>
+      <div class="card">
+        <h2>등록된 사업·대회</h2>
+        <p class="hint" style="margin-top:-6px">학생 화면에는 <b>모집중</b>인 것만 보입니다. 신청이 있는 사업·대회는 삭제할 수 없고 마감만 할 수 있습니다.</p>
+        <div style="overflow-x:auto">
+        <table class="list"><thead><tr><th>상태</th><th>사업·대회명</th><th>지급구분</th><th>신청기간</th><th>신청 수</th><th></th></tr></thead>
+          <tbody id="progRows"></tbody></table>
+        </div>
+      </div>
+    </div>
+    <div id="sub-apps">
+    <div class="stats">
+      <div class="stat"><b id="sStu">0</b><span>신청 학생 수</span></div>
+      <div class="stat"><b id="sAll">0</b><span>전체 신청 건수</span></div>
+      <div class="stat"><b id="sWait">0</b><span>확인 대기</span></div>
+      <div class="stat"><b id="sChg">0</b><span>계좌 변경 신청</span></div>
+    </div>
+    <div class="card">
+      <div class="toolbar">
+        <input type="text" id="q" placeholder="성명·학번·학과·이메일 검색">
+        <select id="fPay"><option value="">전체 지급구분</option></select>
+        <select id="fProg"><option value="">전체 사업·대회</option></select>
+        <select id="fStatus"><option value="">전체 상태</option><option>접수</option><option>확인완료</option><option>반려</option></select>
+      </div>
+      <div class="toolbar">
+        <span class="hint" style="white-space:nowrap">신청일</span>
+        <input type="date" id="fFrom"> <span>~</span> <input type="date" id="fTo">
+        <label class="chkline"><input type="checkbox" id="fLatest" checked> 학번별 최근 신청만</label>
+        <label class="chkline"><input type="checkbox" id="fChg"> 계좌 변경만</label>
+        <button class="btn ghost sm" id="fReset">조건 초기화</button>
+      </div>
+      <div class="dlbar">
+        <span>조회 결과 <b id="cnt">0</b>건 <span class="progress" id="prog"></span></span>
+        <span>
+          <button class="btn pri sm" id="xlsxBtn">⬇ 신청내역 엑셀 다운로드</button>
+          <button class="btn ghost sm" id="attachZipBtn">⬇ 통장 사본 일괄 다운로드(ZIP)</button>
+        </span>
+      </div>
+      <div style="overflow-x:auto">
+      <table class="list">
+        <thead><tr><th>상태</th><th>성명</th><th>학번</th><th>학과(전공)</th><th>지급구분</th><th>은행 · 계좌</th><th>통장사본</th><th>신청일</th><th>비고</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+      </div>
+    </div>
+    </div>
+    <details class="card" id="logBox">
+      <summary style="cursor:pointer;font-weight:600">관리자 작업 기록 (최근 100건 · 수정·삭제 불가)</summary>
+      <div style="overflow-x:auto;margin-top:12px">
+      <table class="list"><thead><tr><th>일시</th><th>관리자</th><th>작업</th><th>내용</th></tr></thead><tbody id="logRows"></tbody></table>
+      </div>
+    </details>
+  </div>
+</main>
+
+<script src="assets/config.js"></script>
+<script src="assets/common.js"></script>
+<script src="assets/sb.js"></script>
+<script src="assets/xlsx.js"></script>
+<script src="assets/admin.js"></script>
+</body>
+</html>
