@@ -19,12 +19,12 @@
 |---|---|
 | `index.html` | 학생 신청 화면 (로그인 없이 신청) |
 | `admin.html` | 관리자 화면 (학생 화면에는 링크가 없습니다) |
-| `assets/config.js` | **설정 파일** – Supabase 주소·키, 지급구분, 학과·은행 목록 |
-| `assets/apply.js` | 신청 화면 동작 |
-| `assets/admin.js` | 관리자 화면 동작 (사업·대회 관리, 조회, 상태 변경, 엑셀·ZIP 다운로드, 작업 기록) |
-| `assets/sb.js` | Supabase 연결 (fetch 기반 최소 클라이언트) |
-| `assets/xlsx.js` | 엑셀(.xlsx)·ZIP 생성기 |
-| `assets/common.js`, `assets/style.css` | 공통 기능·디자인 |
+| `config.js` | **설정 파일** – Supabase 주소·키, 지급구분, 학과·은행 목록 |
+| `apply.js` | 신청 화면 동작 |
+| `admin.js` | 관리자 화면 동작 (사업·대회 관리, 조회, 상태 변경, 엑셀·ZIP 다운로드, 작업 기록) |
+| `sb.js` | Supabase 연결 (fetch 기반 최소 클라이언트) |
+| `xlsx.js` | 엑셀(.xlsx)·ZIP 생성기 |
+| `common.js`, `style.css` | 공통 기능·디자인 |
 | `supabase/schema.sql` | **DB·보안 규칙 설정 스크립트** (Supabase에서 1회 실행) |
 
 ---
@@ -50,7 +50,7 @@
    > 로그인 계정이 있어도 `admins`에 등록되지 않으면 신청내역을 볼 수 없습니다.
 
 ### 2-3. 설정 파일
-**Project Settings → API Keys**에서 복사해 `assets/config.js`에 입력:
+**Project Settings → API Keys**에서 복사해 `config.js`에 입력:
 ```js
 SUPABASE_URL: "https://abcdefghijkl.supabase.co",
 SUPABASE_KEY: "sb_publishable_xxxxxxxx",   // publishable 또는 anon 키
@@ -90,7 +90,7 @@ CONTACT: "문의: 학생처 장학팀 02-300-0000",
 - 마감된 사업으로 제출하면 DB가 거부하고, 학생에게 다시 선택하라는 안내가 나옵니다.
 
 ### 팀명 드롭다운 (기본 목록)
-학생 화면의 팀명은 드롭다운으로 고릅니다. 기본 목록은 `assets/config.js`의 `TEAMS`(엑셀 '팀별 집계' 80팀, `[학부, 학과, 팀명]`)이며 학부별로 묶여 표시되며, 학생은 **목록에 있는 팀만** 고를 수 있습니다(필수). 목록을 바꾸려면 `TEAMS`를 고쳐 GitHub에 다시 올리세요.
+학생 화면의 팀명은 드롭다운으로 고릅니다. 기본 목록은 `config.js`의 `TEAMS`(엑셀 '팀별 집계' 80팀, `[학부, 학과, 팀명]`)이며 학부별로 묶여 표시되며, 학생은 **목록에 있는 팀만** 고를 수 있습니다(필수). 목록을 바꾸려면 `TEAMS`를 고쳐 GitHub에 다시 올리세요.
 
 ### 팀 목록 등록 (사업·대회별, 선택)
 사업·대회 관리 목록의 **[팀 등록]** 버튼 → 엑셀에서 **학부·학과·팀명** 세 열을 선택해 복사(Ctrl+C) → 입력칸에 붙여넣기(Ctrl+V) → **[팀 등록]**.
@@ -123,7 +123,7 @@ CONTACT: "문의: 학생처 장학팀 02-300-0000",
 `supabase/schema.sql` 하단 SQL로 대상 확인 → 관리자 화면에서 삭제(통장 사본도 함께 삭제됨).
 
 ### 학과·지급구분 변경
-- 학과: `assets/config.js`의 `DEPTS` 수정 후 GitHub에 다시 올리기
+- 학과: `config.js`의 `DEPTS` 수정 후 GitHub에 다시 올리기
 - 지급구분: `config.js`의 `PAY_TYPES`와 `schema.sql`의 `pay_type` 조건 **두 곳(programs, applications)** 을 함께 바꾸고 SQL 재실행
 
 ---

@@ -34,8 +34,8 @@ $("#loginForm").addEventListener("submit", async e => {
       : c === "email_provider_disabled" ? "Supabase에서 이메일 로그인이 꺼져 있습니다. Authentication → Sign In / Providers → Email을 켜세요."
       : c === "user_banned" ? "사용이 정지된 계정입니다."
       : err.status === 429 || c === "over_request_rate_limit" ? "로그인 시도가 너무 많습니다. 잠시 후 다시 시도하세요."
-      : /api ?key/i.test(err.message) ? "assets/config.js 의 SUPABASE_KEY(공개 키)가 올바르지 않습니다."
-      : err instanceof TypeError ? "Supabase에 연결할 수 없습니다. assets/config.js 의 SUPABASE_URL을 확인하세요."
+      : /api ?key/i.test(err.message) ? "config.js 의 SUPABASE_KEY(공개 키)가 올바르지 않습니다."
+      : err instanceof TypeError ? "Supabase에 연결할 수 없습니다. config.js 의 SUPABASE_URL을 확인하세요."
       : err.status === 400 ? "이메일 또는 비밀번호가 올바르지 않습니다."
       : "로그인하지 못했습니다. (" + (c ? c + ": " : "") + err.message + ")";
     console.warn("login error", err.status, c, err.message);

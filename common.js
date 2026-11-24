@@ -32,7 +32,7 @@ function configOK() {
 }
 function showConfigBanner() {
   const b = document.createElement("div"); b.className = "banner";
-  b.textContent = "⚠ 설정이 완료되지 않았습니다. assets/config.js 에 Supabase 주소와 키를 입력하세요. (README 참고)";
+  b.textContent = "⚠ 설정이 완료되지 않았습니다. config.js 에 Supabase 주소와 키를 입력하세요. (README 참고)";
   document.body.prepend(b);
 }
 
