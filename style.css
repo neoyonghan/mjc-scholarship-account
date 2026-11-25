@@ -115,3 +115,17 @@ tr.editing td{background:#fff7ed}
 textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:14px;resize:vertical}
 textarea:focus{outline:2px solid var(--pri-soft);border-color:var(--pri)}
 #tmRows td:first-child,#tmRows td:nth-child(2){white-space:nowrap}
+
+/* ---- 상단 배너 (banner.jpg 위에 제목 글자) ---- */
+header.hero{position:relative;padding:0;background:#f3f6fb;color:#121a33;overflow:hidden}
+header.hero img{display:block;width:100%;height:auto}
+.hero-text{position:absolute;left:25.9%;right:21%;top:18.5%}
+header.hero h1{margin:0;font-size:3.05vw;font-weight:800;letter-spacing:-.02em;line-height:1.15;color:#121a33;white-space:nowrap}
+header.hero h1 em{font-style:normal;color:#1554c0}
+header.hero p{margin:1.25vw 0 0;font-size:1.42vw;font-weight:500;color:#3a4458;opacity:1;white-space:nowrap}
+@media (max-width:760px){
+  header.hero img{height:92px;object-fit:cover;object-position:left center}
+  .hero-text{position:static;padding:14px 16px 16px;background:#fff;border-bottom:1px solid var(--line)}
+  header.hero h1{font-size:20px;white-space:normal}
+  header.hero p{font-size:13.5px;margin-top:6px;white-space:normal}
+}
