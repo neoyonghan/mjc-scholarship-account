@@ -163,6 +163,7 @@ F.addEventListener("submit", async e => {
   const accLen = digits(v("account")).length;
   if (accLen < 10 || accLen > 16) mark(F.account);
   if (!v("holder") || v("holder").replace(/\s/g, "") !== v("stuName").replace(/\s/g, "")) mark(F.holder);
+  if (!files.bankDoc) mark(F.bankDoc);                  // 통장 사본 필수
   if (!F.agree1.checked) mark(F.agree1);
   if (bad.length) {
     bad[0].scrollIntoView({ behavior: "smooth", block: "center" });
@@ -195,7 +196,8 @@ F.addEventListener("submit", async e => {
   } catch (err) {
     console.error(err);
     let msg = "제출하지 못했습니다. 잠시 후 다시 시도해 주세요.";
-    if (err.message === "TOO_MANY") msg = "같은 학번으로 하루 5회까지 신청할 수 있습니다. 내일 다시 신청하세요.";
+    if (err.message === "BANKDOC_REQUIRED") msg = "통장 사본을 첨부해 주세요.";
+    else if (err.message === "TOO_MANY") msg = "같은 학번으로 하루 5회까지 신청할 수 있습니다. 내일 다시 신청하세요.";
     else if (err.message === "TEAM_REQUIRED" || err.message === "TEAM_INVALID") {
       msg = "팀 목록이 바뀌었습니다. 목록을 새로 불러왔으니 팀을 다시 선택해 주세요.";
       loadTeams();
