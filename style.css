@@ -110,6 +110,16 @@ footer{max-width:960px;margin:0 auto 40px;padding:0 16px;font-size:12px;color:va
 .daterow{display:flex;gap:6px;align-items:center}
 .daterow input{flex:1;min-width:0}
 .tag.soon{background:#e8eefa;color:var(--pri)}
+/* 중복 확인 */
+.tag.dup{background:#fde8e6;color:var(--err)}
+.tag.dup2{background:#fff3e0;color:var(--warn)}
+.tag.team{background:#eef1f6;color:var(--sub);font-weight:500}
+.stat.dup{font:inherit;text-align:left;cursor:pointer;color:inherit}
+.stat.dup b{color:var(--err)}
+.stat.dup:hover{border-color:var(--err)}
+.rno{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.duplist{margin:0 0 10px;padding-left:18px;font-size:13px}
+.duplist li{margin:2px 0}
 .rowbtns{display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap}
 tr.editing td{background:#fff7ed}
 textarea{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:7px;font:inherit;font-size:14px;resize:vertical}

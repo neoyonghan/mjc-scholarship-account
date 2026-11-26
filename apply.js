@@ -189,7 +189,9 @@ F.addEventListener("submit", async e => {
       bank: v("bank"), account: v("account"), holder: v("holder"),
       bank_doc_path: bankPath, agreed: true
     });
-    showDone(id);
+    let no = null;
+    try { no = await SB.rpc("receipt_no", { p_id: id }); } catch (e) { console.warn(e); }
+    showDone(id, no);
   } catch (err) {
     console.error(err);
     let msg = "제출하지 못했습니다. 잠시 후 다시 시도해 주세요.";
@@ -212,8 +214,10 @@ F.addEventListener("submit", async e => {
   }
 });
 
-function showDone(id) {
-  $("#rcpt").textContent = "접수번호 " + id.slice(0, 8).toUpperCase() + " · " + loc(new Date().toISOString()).slice(0, 16);
+// 접수번호: 서버가 매긴 일련번호(세 자리, 001부터). 번호를 못 받으면 신청 ID 앞 8자리로 대신 표시
+const receiptText = (id, no) => (Number(no) > 0 ? String(no).padStart(3, "0") : id.slice(0, 8).toUpperCase());
+function showDone(id, no) {
+  $("#rcpt").textContent = "접수번호 " + receiptText(id, no) + " · " + loc(new Date().toISOString()).slice(0, 16);
   resetForm();
   $("#formWrap").classList.add("hidden");
   $("#doneWrap").classList.remove("hidden");

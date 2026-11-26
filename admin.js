@@ -107,11 +107,56 @@ async function load() {
       r._acctChanged = !!prev && (digits(prev.account) !== digits(r.account) || prev.bank !== r.bank);
     });
   }
+  markDuplicates();
   $("#prog").textContent = "";
   await loadPrograms();
   render(); loadLogs();
 }
 $("#reloadBtn").onclick = load;
+
+
+/* ---------- 중복 확인 (학번 · 성명 · 팀명) ----------
+   same : 학번·성명·팀명이 모두 같은 신청이 2건 이상 → 같은 사람이 여러 번 제출
+   stu  : 같은 학번인데 성명이나 팀명이 다른 신청이 있음 → 학번 오타 또는 다른 팀 중복 신청 확인
+   name : 같은 성명인데 학번이 다른 신청이 있음 → 동명이인인지, 학번을 잘못 쓴 것인지 확인
+   team : 같은 사업·같은 팀에 신청한 학생 수(정보용, 팀원은 여럿이 정상)                         */
+const nm = s => String(s || "").replace(/\s+/g, "");
+const tm = s => String(s || "").replace(/\s+/g, "").toLowerCase();
+const receiptNo = r => (r.seq ? String(r.seq).padStart(3, "0") : r.id.slice(0, 8).toUpperCase());
+let dupGroups = { same: new Map(), name: new Map(), team: new Map() };
+function markDuplicates() {
+  const group = keyOf => { const m = new Map(); for (const r of all) { const k = keyOf(r); if (k == null) continue; if (!m.has(k)) m.set(k, []); m.get(k).push(r); } return m; };
+  const same = group(r => `${r.stu_id}|${nm(r.name)}|${tm(r.team)}`);
+  const name = group(r => nm(r.name));
+  const team = group(r => (r.team ? `${r.program_id || ""}|${tm(r.team)}` : null));
+  dupGroups = { same, name, team };
+  for (const r of all) {
+    const s = same.get(`${r.stu_id}|${nm(r.name)}|${tm(r.team)}`);
+    const st = byStu.get(r.stu_id) || [];
+    const nmList = name.get(nm(r.name)) || [];
+    const tmList = r.team ? team.get(`${r.program_id || ""}|${tm(r.team)}`) || [] : [];
+    r._dupSame = s.length > 1 ? s.length : 0;
+    r._dupStu = st.some(x => nm(x.name) !== nm(r.name) || tm(x.team) !== tm(r.team));
+    r._dupName = new Set(nmList.map(x => x.stu_id)).size > 1;
+    r._teamN = new Set(tmList.map(x => x.stu_id)).size;
+    r._dup = !!(r._dupSame || r._dupStu || r._dupName);
+    r._dupText = [r._dupSame ? `중복 신청 ${r._dupSame}건(학번·성명·팀명 같음)` : "",
+                  r._dupStu ? "같은 학번에 성명/팀명 다름" : "", r._dupName ? "같은 성명에 학번 다름" : ""].filter(Boolean).join(", ");
+  }
+}
+function dupMatch(r, f) {
+  return !f || (f === "any" ? r._dup : f === "same" ? r._dupSame > 0 : f === "stu" ? r._dupStu : f === "name" ? r._dupName : f === "team" ? r._teamN > 1 : true);
+}
+function dupSortKey(r, f) {
+  if (f === "name") return nm(r.name) + "|" + r.stu_id;
+  if (f === "team") return (r.program || "") + "|" + tm(r.team) + "|" + r.stu_id;
+  return r.stu_id + "|" + nm(r.name);
+}
+function dupTags(r) {
+  return (r._dupSame ? `<span class="tag dup" title="학번·성명·팀명이 모두 같은 신청">중복 ${r._dupSame}건</span> ` : "")
+       + (r._dupStu ? `<span class="tag dup2" title="같은 학번으로 성명 또는 팀명이 다르게 신청됨">학번 확인</span> ` : "")
+       + (r._dupName ? `<span class="tag dup2" title="같은 성명으로 다른 학번이 있음(동명이인 또는 학번 오타)">성명 확인</span> ` : "");
+}
 
 function render() {
   const latest = all.filter(r => r._latest);
@@ -119,32 +164,39 @@ function render() {
   $("#sAll").textContent = all.length;
   $("#sWait").textContent = latest.filter(r => r.status === "접수").length;
   $("#sChg").textContent = latest.filter(r => r._acctChanged).length;
+  $("#sDup").textContent = new Set(all.filter(r => r._dup).map(r => r.stu_id)).size;
 
   const q = $("#q").value.trim().toLowerCase(), fp = $("#fPay").value, fs = $("#fStatus").value, fg = $("#fProg").value,
-        f1 = $("#fFrom").value, f2 = $("#fTo").value, onlyLatest = $("#fLatest").checked, onlyChg = $("#fChg").checked;
-  current = all.filter(r => (!onlyLatest || r._latest) && (!onlyChg || r._acctChanged)
+        f1 = $("#fFrom").value, f2 = $("#fTo").value, onlyChg = $("#fChg").checked, fd = $("#fDup").value;
+  // 중복 확인 조건을 고르면 '최근 신청만'과 관계없이 해당 신청을 모두 보여 줌(나란히 비교)
+  const onlyLatest = $("#fLatest").checked && !fd;
+  $("#fLatest").disabled = !!fd;
+  current = all.filter(r => (!onlyLatest || r._latest) && (!onlyChg || r._acctChanged) && dupMatch(r, fd)
     && (!fp || r.pay_type === fp) && (!fs || r.status === fs)
     && (!fg || (fg === "__none" ? !r.program_id : r.program_id === fg))
     && (!f1 || loc(r.created_at).slice(0, 10) >= f1) && (!f2 || loc(r.created_at).slice(0, 10) <= f2)
-    && (!q || [r.name, r.stu_id, r.dept, r.email, r.team].join(" ").toLowerCase().includes(q)));
+    && (!q || [r.name, r.stu_id, r.dept, r.email, r.team, receiptNo(r)].join(" ").toLowerCase().includes(q)));
+  if (fd) current.sort((a, b) => dupSortKey(a, fd).localeCompare(dupSortKey(b, fd), "ko") || (b.created_at > a.created_at ? 1 : -1));
   $("#cnt").textContent = current.length;
   const stTag = s => `<span class="tag ${s === "확인완료" ? "okk" : s === "반려" ? "rej" : "wait"}">${esc(s)}</span>`;
   $("#rows").innerHTML = current.length ? current.map(r => `<tr>
+    <td class="rno">${esc(receiptNo(r))}</td>
     <td>${stTag(r.status)}</td>
-    <td><b>${esc(r.name)}</b>${r.team ? ` <small class="tag soon">${esc(r.team)}</small>` : ""}${r.email ? `<br><small style="color:var(--sub)">${esc(r.email)}</small>` : ""}</td>
+    <td><b>${esc(r.name)}</b>${r.team ? ` <small class="tag soon">${esc(r.team)}</small>${r._teamN > 1 ? ` <small class="tag team" title="같은 사업·같은 팀으로 신청한 학생 수">팀 ${r._teamN}명</small>` : ""}` : ""}${r.email ? `<br><small style="color:var(--sub)">${esc(r.email)}</small>` : ""}</td>
     <td>${esc(r.stu_id)}</td>
     <td>${esc(r.dept)}</td>
     <td>${esc(r.pay_type)}${r.program ? `<br><small style="color:var(--sub)">${esc(r.program)}</small>` : ""}</td>
     <td>${esc(r.bank)}<br><small style="color:var(--sub)">${esc(maskAcc(r.account))}</small></td>
     <td>${r.bank_doc_path ? "제출" : "-"}</td>
     <td>${loc(r.created_at).slice(0, 10)}</td>
-    <td>${r._acctChanged ? '<span class="tag chg">계좌변경</span>' : ""}${r._count > 1 ? ` <small class="hint">${r._count}회 신청</small>` : ""}</td>
+    <td>${dupTags(r)}${r._acctChanged ? '<span class="tag chg">계좌변경</span>' : ""}${r._count > 1 ? ` <small class="hint">${r._count}회 신청</small>` : ""}</td>
     <td><button class="btn ghost sm" data-view="${esc(r.id)}">상세</button></td></tr>`).join("")
-    : `<tr><td colspan="10" class="empty">조회된 신청내역이 없습니다.</td></tr>`;
+    : `<tr><td colspan="11" class="empty">조회된 신청내역이 없습니다.</td></tr>`;
 }
-["q", "fPay", "fStatus", "fProg", "fFrom", "fTo", "fLatest", "fChg"].forEach(id => $("#" + id).addEventListener("input", render));
+["q", "fPay", "fStatus", "fProg", "fFrom", "fTo", "fLatest", "fChg", "fDup"].forEach(id => $("#" + id).addEventListener("input", render));
+$("#sDupBox").onclick = () => { $("#fDup").value = "any"; render(); $("#fDup").scrollIntoView({ behavior: "smooth", block: "center" }); };
 $("#fReset").onclick = () => {
-  ["q", "fPay", "fStatus", "fProg", "fFrom", "fTo"].forEach(id => $("#" + id).value = "");
+  ["q", "fPay", "fStatus", "fProg", "fFrom", "fTo", "fDup"].forEach(id => $("#" + id).value = "");
   $("#fLatest").checked = true; $("#fChg").checked = false; render();
 };
 
@@ -154,6 +206,24 @@ async function loadLogs() {
     $("#logRows").innerHTML = logs.map(l => `<tr><td>${loc(l.at)}</td><td>${esc(l.admin_email)}</td><td>${esc(l.action)}</td><td>${esc(l.detail)}</td></tr>`).join("")
       || `<tr><td colspan="4" class="empty">기록 없음</td></tr>`;
   } catch (err) { handleAuthError(err); }
+}
+
+
+// 상세 화면: 같은 성명(다른 학번) · 같은 팀 신청자 목록
+function dupDetail(r) {
+  const out = [];
+  const li = x => `<li>${esc(receiptNo(x))} · ${esc(x.name)} (${esc(x.stu_id)}) · ${esc(x.team) || "팀 없음"} · ${esc(x.dept)} · ${loc(x.created_at).slice(0, 10)}</li>`;
+  if (r._dupSame) out.push(`<div class="notice warn" style="margin-bottom:6px">학번·성명·팀명이 모두 같은 신청이 <b>${r._dupSame}건</b> 있습니다. 같은 사람이 여러 번 제출한 것이니 최근 1건만 처리하고 나머지는 반려하세요.</div>`);
+  if (r._dupStu) out.push(`<div class="notice warn" style="margin-bottom:6px">같은 학번으로 <b>성명 또는 팀명이 다른</b> 신청이 있습니다. 아래 신청 이력에서 학번 오타인지, 다른 팀으로 중복 신청했는지 확인하세요.</div>`);
+  if (r._dupName) {
+    const others = (dupGroups.name.get(nm(r.name)) || []).filter(x => x.stu_id !== r.stu_id);
+    out.push(`<div class="notice warn" style="margin-bottom:6px">같은 성명으로 <b>다른 학번</b>의 신청이 있습니다. 동명이인인지, 학번을 잘못 쓴 것인지 확인하세요.</div><ul class="duplist">${others.map(li).join("")}</ul>`);
+  }
+  if (r._teamN > 1) {
+    const mates = (dupGroups.team.get(`${r.program_id || ""}|${tm(r.team)}`) || []).filter(x => x.id !== r.id);
+    out.push(`<details style="margin-bottom:8px"><summary class="hint" style="cursor:pointer">같은 팀(${esc(r.team)}) 신청자 ${r._teamN}명 보기</summary><ul class="duplist">${mates.map(li).join("")}</ul></details>`);
+  }
+  return out.join("");
 }
 
 /* ---------- 상세 ---------- */
@@ -171,7 +241,7 @@ $("#rows").addEventListener("click", async e => {
   const hist = byStu.get(r.stu_id) || [r];
   const bg = document.createElement("div"); bg.className = "modal-bg";
   bg.innerHTML = `<div class="modal">
-    <h3>${esc(r.name)} <small class="hint">${esc(r.stu_id)} · 접수번호 ${esc(r.id.slice(0, 8).toUpperCase())}</small></h3>
+    <h3>${esc(r.name)} <small class="hint">${esc(r.stu_id)} · 접수번호 ${esc(receiptNo(r))}</small></h3>
     <dl class="kv">
       <dt>지급 구분</dt><dd>${esc(r.pay_type)}${r.program ? " · " + esc(r.program) : ""}</dd>
       <dt>팀명</dt><dd>${esc(r.team) || "-"}</dd>
@@ -180,9 +250,10 @@ $("#rows").addEventListener("click", async e => {
       <dt>은행</dt><dd>${esc(r.bank)}</dd><dt>계좌번호</dt><dd>${esc(r.account)}</dd><dt>예금주</dt><dd>${esc(r.holder)}</dd>
       <dt>신청일시</dt><dd>${loc(r.created_at).slice(0, 16)}</dd>
     </dl>
+    ${dupDetail(r)}
     ${hist.length > 1 ? `<div class="notice warn" style="margin-bottom:6px">이 학번으로 ${hist.length}회 신청되었습니다. 계좌가 바뀐 경우 본인 확인 후 처리하세요.</div>
-      <table class="hist"><tr><th>신청일시</th><th>은행 · 계좌</th><th>예금주</th><th>상태</th></tr>
-      ${hist.map(h => `<tr class="${h.id === r.id ? "cur" : ""}"><td>${loc(h.created_at).slice(0, 16)}</td><td>${esc(h.bank)} ${esc(h.account)}</td><td>${esc(h.holder)}</td><td>${esc(h.status)}</td></tr>`).join("")}</table>` : ""}
+      <table class="hist"><tr><th>접수번호</th><th>신청일시</th><th>성명 · 팀명</th><th>은행 · 계좌</th><th>예금주</th><th>상태</th></tr>
+      ${hist.map(h => `<tr class="${h.id === r.id ? "cur" : ""}"><td>${esc(receiptNo(h))}</td><td>${loc(h.created_at).slice(0, 16)}</td><td>${esc(h.name)} · ${esc(h.team) || "-"}</td><td>${esc(h.bank)} ${esc(h.account)}</td><td>${esc(h.holder)}</td><td>${esc(h.status)}</td></tr>`).join("")}</table>` : ""}
     <div class="docs">
       <figure id="fig-bank">${r.bank_doc_path ? '<div class="empty" style="padding:30px 0">불러오는 중…</div>' : '<div class="empty" style="padding:30px 0">미제출</div>'}<figcaption>통장사본</figcaption></figure>
     </div>
@@ -231,7 +302,7 @@ $("#rows").addEventListener("click", async e => {
     try {
       if (r.bank_doc_path) await SB.removeFiles(CONFIG.BUCKET, [r.bank_doc_path]);
       await SB.remove("applications", "id=eq." + encodeURIComponent(r.id));
-      await addLog("신청 삭제", `${r.stu_id} ${r.name} (${r.id.slice(0, 8)})`);
+      await addLog("신청 삭제", `${r.stu_id} ${r.name} (접수번호 ${receiptNo(r)})`);
       close(); toast("삭제되었습니다."); load();
     } catch (err) { if (!handleAuthError(err)) toast("삭제하지 못했습니다: " + err.message, 4000); }
   };
@@ -263,13 +334,13 @@ function chooseOptions(title, withAccount) {
     };
   });
 }
-const XL_HEAD = ["번호", "상태", "지급구분", "사업·대회명", "학번", "성명", "팀명", "학과(전공)", "학년", "연락처", "이메일",
-                 "은행명", "계좌번호", "예금주", "통장사본", "신청일시", "비고", "관리자 메모", "접수번호"];
-const XL_W = [6, 9, 10, 26, 12, 10, 16, 28, 6, 15, 26, 14, 20, 10, 9, 17, 14, 24, 11];
-const toRow = (r, i, mask) => [i + 1, r.status, r.pay_type, r.program, r.stu_id, r.name, r.team, r.dept, r.grade, r.phone, r.email,
+const XL_HEAD = ["번호", "접수번호", "상태", "지급구분", "사업·대회명", "학번", "성명", "팀명", "학과(전공)", "학년", "연락처", "이메일",
+                 "은행명", "계좌번호", "예금주", "통장사본", "신청일시", "비고", "중복 확인", "같은 팀 신청자 수", "관리자 메모"];
+const XL_W = [6, 10, 9, 10, 26, 12, 10, 16, 28, 6, 15, 26, 14, 20, 10, 9, 17, 14, 34, 10, 24];
+const toRow = (r, i, mask) => [i + 1, receiptNo(r), r.status, r.pay_type, r.program, r.stu_id, r.name, r.team, r.dept, r.grade, r.phone, r.email,
   r.bank, mask ? maskAcc(r.account) : r.account, r.holder, r.bank_doc_path ? "제출" : "미제출",
-  loc(r.created_at).slice(0, 16), (r._acctChanged ? "계좌변경 " : "") + (r._count > 1 ? `${r._count}회 신청` : ""), r.admin_memo,
-  r.id.slice(0, 8).toUpperCase()];
+  loc(r.created_at).slice(0, 16), (r._acctChanged ? "계좌변경 " : "") + (r._count > 1 ? `${r._count}회 신청` : ""),
+  r._dupText || "", r.team ? (r._teamN || 1) : "", r.admin_memo];
 
 $("#xlsxBtn").onclick = async () => {
   if (!all.length) return toast("신청내역이 없습니다.");
@@ -285,7 +356,7 @@ $("#attachZipBtn").onclick = async () => {
   const opt = await chooseOptions("통장 사본 일괄 다운로드(ZIP)", false); if (!opt) return;
   const jobs = [];
   opt.list.forEach(r => {
-    const k = `${personKey(r)}_${r.id.slice(0, 8)}`;
+    const k = `${receiptNo(r)}_${personKey(r)}`;
     if (r.bank_doc_path) jobs.push({ path: r.bank_doc_path, name: `${k}/통장사본${extOf(r.bank_doc_path)}` });
   });
   if (!jobs.length) return toast("제출된 통장 사본이 없습니다.");
