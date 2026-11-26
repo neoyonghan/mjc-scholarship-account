@@ -179,19 +179,18 @@ function render() {
   if (fd) current.sort((a, b) => dupSortKey(a, fd).localeCompare(dupSortKey(b, fd), "ko") || (b.created_at > a.created_at ? 1 : -1));
   $("#cnt").textContent = current.length;
   const stTag = s => `<span class="tag ${s === "확인완료" ? "okk" : s === "반려" ? "rej" : "wait"}">${esc(s)}</span>`;
-  $("#rows").innerHTML = current.length ? current.map(r => `<tr>
+  $("#rows").innerHTML = current.length ? current.map(r => `<tr data-row="${esc(r.id)}">
     <td class="rno">${esc(receiptNo(r))}</td>
     <td>${stTag(r.status)}</td>
-    <td><b>${esc(r.name)}</b>${r.team ? ` <small class="tag soon">${esc(r.team)}</small>${r._teamN > 1 ? ` <small class="tag team" title="같은 사업·같은 팀으로 신청한 학생 수">팀 ${r._teamN}명</small>` : ""}` : ""}${r.email ? `<br><small style="color:var(--sub)">${esc(r.email)}</small>` : ""}</td>
-    <td>${esc(r.stu_id)}</td>
-    <td>${esc(r.dept)}</td>
-    <td>${esc(r.pay_type)}${r.program ? `<br><small style="color:var(--sub)">${esc(r.program)}</small>` : ""}</td>
-    <td>${esc(r.bank)}<br><small style="color:var(--sub)">${esc(maskAcc(r.account))}</small></td>
-    <td>${r.bank_doc_path ? "제출" : "-"}</td>
-    <td>${loc(r.created_at).slice(0, 10)}</td>
-    <td>${dupTags(r)}${r._acctChanged ? '<span class="tag chg">계좌변경</span>' : ""}${r._count > 1 ? ` <small class="hint">${r._count}회 신청</small>` : ""}</td>
-    <td><button class="btn ghost sm" data-view="${esc(r.id)}">상세</button></td></tr>`).join("")
-    : `<tr><td colspan="11" class="empty">조회된 신청내역이 없습니다.</td></tr>`;
+    <td class="who"><b>${esc(r.name)}</b>${r.team ? `<br><small class="tag soon">${esc(r.team)}</small>${r._teamN > 1 ? ` <small class="tag team" title="같은 사업·같은 팀으로 신청한 학생 수">${r._teamN}명</small>` : ""}` : ""}</td>
+    <td class="nw">${esc(r.stu_id)}</td>
+    <td class="dept">${esc(r.dept)}</td>
+    <td class="prog">${esc(r.pay_type)}${r.program ? `<br><small>${esc(r.program)}</small>` : ""}</td>
+    <td class="nw">${esc(r.bank)}<br><small>${esc(maskAcc(r.account))}${r.bank_doc_path ? " · 사본" : ""}</small></td>
+    <td class="nw" title="${esc(loc(r.created_at).slice(0, 16))}">${loc(r.created_at).slice(2, 10).replace(/-/g, ".")}</td>
+    <td class="note">${dupTags(r)}${r._acctChanged ? '<span class="tag chg">계좌변경</span> ' : ""}${r._count > 1 ? `<small class="hint">${r._count}회 신청</small>` : ""}</td>
+    <td class="act"><button class="btn ghost sm" data-view="${esc(r.id)}">상세</button></td></tr>`).join("")
+    : `<tr><td colspan="10" class="empty">조회된 신청내역이 없습니다.</td></tr>`;
 }
 ["q", "fPay", "fStatus", "fProg", "fFrom", "fTo", "fLatest", "fChg", "fDup"].forEach(id => $("#" + id).addEventListener("input", render));
 $("#sDupBox").onclick = () => { $("#fDup").value = "any"; render(); $("#fDup").scrollIntoView({ behavior: "smooth", block: "center" }); };
@@ -236,7 +235,9 @@ function saveBlob(blob, name) {
 }
 
 $("#rows").addEventListener("click", async e => {
-  const id = e.target.dataset.view; if (!id) return;
+  // '상세' 버튼 또는 행 아무 곳이나 누르면 상세 화면
+  const tr = e.target.closest("tr[data-row]"); const id = e.target.dataset.view || (tr && tr.dataset.row); if (!id) return;
+  if (window.getSelection && String(window.getSelection()).length) return;   // 글자를 드래그해 복사할 때는 열지 않음
   const r = all.find(x => x.id === id); if (!r) return;
   const hist = byStu.get(r.stu_id) || [r];
   const bg = document.createElement("div"); bg.className = "modal-bg";
